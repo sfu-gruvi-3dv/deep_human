@@ -1,0 +1,4 @@
+Average angular difference using grey_grad_model on real_data : 42.622680949263156
+Average angular difference using rgb_model on real_data : 44.312530660524736
+Average angular difference using grey_grad_model on textureless_deformable_surfaces : 23.480626538674926
+Average angular difference using rgb_model on textureless_deformable_surfaces : 24.485530706019176
