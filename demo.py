@@ -63,7 +63,6 @@ if __name__ == '__main__':
     argparser.add_argument('-e', '--eval', action='store_true', help='evaluation')
     argparser.add_argument('-nb', '--num-batches', type=int, default=1, help='number of batches')
     args = argparser.parse_args()
-    # eval_flag = False
     eval_flag = True
     batch_num = 1
 
@@ -79,10 +78,6 @@ if __name__ == '__main__':
         depth_bilateral_ext = tf.reshape(depth_bilateral_num, [-1, 256, 256, 1])
         depth_gt_num = tf.placeholder(tf.float32, [None, 256, 256], name='y_depth_raw_num')
         depth_gt_ext = tf.reshape(depth_gt_num, [-1, 256, 256, 1])
-
-        # gt_2d_seg = tf.placeholder(tf.int8,[None,64,64,15],name='y_seg')
-        # gt_3d_joint = tf.placeholder(tf.float32,[None,64,64,304],name='y_3djoint')
-
 
     with tf.variable_scope('seg_2d'):
         seg_2d_model = HourglassModel(phase, params.nStacks, params.nFeat, 15, params.nLow,
@@ -100,21 +95,16 @@ if __name__ == '__main__':
         pred_joints0 = tf.concat([w0, h0, d0], -1)
         pred_joints1 = tf.concat([w1, h1, d1], -1)
 
-    seg_2d_lowres = seg_2d_output['out'][1]
-    #pose_3d_lowres = tf.image.resize_images(pose_3d_output['out'][1], [256, 256])
-    seg_argmax_lowres = tf.argmax(seg_2d_lowres, 3)
-
-    pred_2d_seg = tf.placeholder(tf.int8, [None, 64, 64, 15], name='y_seg_gussian')
-    pred_3d_joint = tf.placeholder(tf.float32, [None, 64, 64, 304], name='y_3djoint_gussian')
+        seg_2d_lowres = seg_2d_output['out'][1]
 
 
-    seg_2d_rescale = tf.image.resize_images(pred_2d_seg, [256, 256])
-    pose_3d_rescale = tf.image.resize_images(pred_3d_joint, [256, 256])
+    seg_2d_rescale = tf.image.resize_images(seg_2d_output['out'][1], [256, 256])
+    pose_3d_rescale = tf.image.resize_images(pose_3d_output['out'][1], [256, 256])
     seg_argmax = tf.argmax(seg_2d_rescale, 3)
 
     zero_tensor = tf.zeros_like(seg_argmax, dtype=tf.int64)
 
-    pref_mask = tf.math.equal(seg_argmax, zero_tensor, name=None)
+    pref_mask = tf.equal(seg_argmax, zero_tensor, name=None)
 
 
 
@@ -167,36 +157,7 @@ if __name__ == '__main__':
                                          gamma, lamd)
 
     with tf.variable_scope('loss'):
-        # basic_depth_final = tf.where(ifbasic, basic_depth, tf.stop_gradient(basic_depth))
-        # residual_depth_final = tf.where(ifbasic, tf.zeros_like(residual_depth), residual_depth)
-        # pred_depth = basic_depth_final + residual_depth_final
-        #
         loss = masked_huberloss(basic_depth, depth_bilateral_ext, mask_ext, delta=0.20)
-        #
-        # detail_loss = masked_threholdloss_clip(depth_bilateral_ext + residual_depth, depth_gt_ext, mask_ext, delta=0.10)
-        #
-        # stage2_loss = masked_threholdloss_clip(basic_depth + residual_depth, depth_gt_ext, mask_ext, delta=0.05)
-        #
-        # loss = loss + detail_loss*5 + stage2_loss*15
-        # loss = masked_huberloss(basic_depth, depth_bilateral_ext, mask_ext, delta=0.20) + \
-        #        masked_threholdloss_clip(depth_bilateral_ext + residual_depth, depth_gt_ext, mask_ext, delta=0.10) +\
-        #                         masked_threholdloss_clip(basic_depth + residual_depth, depth_gt_ext, mask_ext, delta=0.05)
-
-
-        # depth_basic_loss = masked_huberloss(basic_depth, depth_bilateral_ext, mask_ext, delta=0.20)
-        # depth_offset_loss = masked_threholdloss_clip(depth_bilateral_ext + residual_depth, depth_gt_ext, mask_ext,
-        #                                              delta=0.10)
-        #
-        #
-        # depth_all_loss = masked_threholdloss_clip(basic_depth + residual_depth, depth_gt_ext, mask_ext, delta=0.05)
-        #
-
-        #
-        # depth_loss = depth_basic_loss + depth_offset_loss + depth_all_loss * 10
-        #
-        # loss = depth_loss
-
-        # tf.summary.scalar('loss', loss)
 
 
     with tf.variable_scope('rmsprop_optimizer'):
@@ -243,7 +204,7 @@ if __name__ == '__main__':
             vars_in_checkpoint, _ = scan_checkpoint_for_vars(restore_dir, global_vars)
             saver_restore_ckpt = tf.train.Saver(vars_in_checkpoint)
             saver_restore_ckpt.restore(sess, restore_dir)
-            normal_dir = tf.train.latest_checkpoint('/home/sicong/Human_depth_multiview/normal_train/saved_normal_model/')
+            normal_dir = tf.train.latest_checkpoint(params.normal_dir)
             saver_normal.restore(sess, normal_dir)
             global_vars = tf.global_variables()
             is_not_initialized = sess.run([tf.is_variable_initialized(var) for var in global_vars])
@@ -252,32 +213,8 @@ if __name__ == '__main__':
                 sess.run(tf.variables_initializer(not_initialized_vars))
             print('restore succeed')
         else:
-            print('Initializing')
-            sess.run(init)
-            print('Initialization succeed')
-
-            seg_pose_restore_dir = tf.train.latest_checkpoint(params.poseseg_model_dir)
-            if seg_pose_restore_dir:
-                saver_pose_seg.restore(sess, seg_pose_restore_dir)
-                print('restore pose_seg succeed')
-            else:
-                print('Restore pose_seg failed')
-                raise SystemExit
-
-            depth_restore_dir = tf.train.latest_checkpoint(params.depth_model_dir)
-            if depth_restore_dir:
-                saver_depth.restore(sess, depth_restore_dir)
-                print('restore depth succeed')
-            else:
-                print('Restore depth failed')
-                raise SystemExit
-
-            global_vars = tf.global_variables()
-            is_not_initialized = sess.run([tf.is_variable_initialized(var) for var in global_vars])
-            not_initialized_vars = [v for (v, f) in zip(global_vars, is_not_initialized) if not f]
-            if len(not_initialized_vars):
-                sess.run(tf.variables_initializer(not_initialized_vars))
-            print('restore succeed')
+            print('restore failed')
+            exit(0)
 
         summary_train = tf.summary.FileWriter(params.log_dir, tf.get_default_graph(),
                                               filename_suffix=params.log_dir)
@@ -298,8 +235,8 @@ if __name__ == '__main__':
             t_train_start = datetime.now()
 
             # Initialize datalist
-
-            dataset = glob.glob('/home/sicong/Downloads/dataset/*.jpg')
+            meanstd = util.load_obj(params.meanRgb_dir)
+            dataset = glob.glob(params.test_dir+'/*.jpg')
             index = 0
             batch_size = 1
             img_batch = np.zeros((batch_size, 256, 256, 3), dtype=np.float32)
@@ -313,19 +250,12 @@ if __name__ == '__main__':
             for data in dataset:
                 i = 0
                 while i < batch_size:
-                    segname = data.split('/')[-1].split('.')[0].split('_')[-1]
-                    segname = '40'
-                    img = io.imread('/home/sicong/Downloads/de/img_'+segname+'.jpg')
-                    meanstd = util.load_obj(params.meanRgb_dir)
-
+                    img = io.imread(data)
                     for j in range(3):
                         testimg[:, :, j] = np.clip(img[:, :, j].astype(np.float32) / 255.0, 0.0, 1.0)
                         testimg[:, :, j] = testimg[:, :, j] - meanstd['mean'][j]
                         testimg[:, :, j] = testimg[:, :, j] / meanstd['std'][j]
                     img_batch[i] = testimg
-
-                    segmap[i] = sio.loadmat('/home/sicong/Downloads/de/seg_'+segname+'.mat')['x'][0,:,:]
-                    pred_joints_[i] = np.load('/home/sicong/Downloads/de/img_'+segname+'.npy')
                     mask_batch[i] = np.load('/home/sicong/Downloads/de/gtmask_'+segname+'.npy')
                     depth_batch[i] = np.load('/home/sicong/Downloads/de/gtdepth_'+segname+'.npy')
 
@@ -333,33 +263,20 @@ if __name__ == '__main__':
                     plt.imshow(img_batch[i], aspect='auto', cmap=plt.get_cmap('jet'))
                     plt.show()
 
-                    plt.figure()
-                    plt.imshow(segmap[i], aspect='auto', cmap=plt.get_cmap('jet'))
-                    plt.show()
-
-                    plt.figure()
-                    plt.imshow(mask_batch[i], aspect='auto', cmap=plt.get_cmap('jet'))
-                    plt.show()
-
-                    plt.figure()
-                    plt.imshow(depth_batch[i], aspect='auto', cmap=plt.get_cmap('jet'))
-                    plt.show()
+                    # plt.figure()
+                    # plt.imshow(mask_batch[i], aspect='auto', cmap=plt.get_cmap('jet'))
+                    # plt.show()
+                    #
+                    # plt.figure()
+                    # plt.imshow(depth_batch[i], aspect='auto', cmap=plt.get_cmap('jet'))
+                    # plt.show()
                     i = i+1
-
-                seg_argmax_lowres_ = sess.run(
-                    seg_argmax_lowres,
-                    feed_dict={x: img_batch,
-                               phase: True})
-
-                seg_heat, joints_guassian = util.getheat(seg_argmax_lowres_, pred_joints_, batch_size)
 
 
                 regressed_depth_, refined_depth_, basic_depth_, seg_pred_ ,pred_normal_= sess.run(
                     [regressed_depth, refined_depth, basic_depth, pref_mask,refined_normal],
                     feed_dict={
                         x: img_batch,
-                        pred_3d_joint: joints_guassian,
-                        pred_2d_seg: seg_heat,
                         mask: mask_batch,
                         phase: True})
 
@@ -374,56 +291,56 @@ if __name__ == '__main__':
                 for i in range(params.batch_size):
                     normaldic['Normal_est'] = pred_normal_[i]
                     maskdic['mask'] = mask_batch[i]
-                    sio.savemat(os.path.join('/home/sicong/Downloads/out2/', '{}_{}_mask.mat'.format(index, i)),
+                    sio.savemat(os.path.join(params.output_dir, '{}_{}_mask.mat'.format(index, i)),
                                 maskdic)
-                    sio.savemat(os.path.join('/home/sicong/Downloads/out2/', '{}_{}_normal.mat'.format(index, i)),normaldic)
-                    plt.imsave(os.path.join('/home/sicong/Downloads/out2/', '{}_{}_img.png'.format(index, i)), ori_img[i])
+                    sio.savemat(os.path.join(params.output_dir, '{}_{}_normal.mat'.format(index, i)),normaldic)
+                    plt.imsave(os.path.join(params.output_dir, '{}_{}_img.png'.format(index, i)), ori_img[i])
 
                     util.depth2mesh(refined_depth_[i], mask_batch[i],
-                                    os.path.join('/home/sicong/Downloads/out2/', '{}_{}_detail_depth'.format(index, i)))
+                                    os.path.join(params.output_dir, '{}_{}_detail_depth'.format(index, i)))
                     util.depth2mesh(basic_depth_[i], mask_batch[i],
-                                    os.path.join('/home/sicong/Downloads/out2/', '{}_{}_basic_depth'.format(index, i)))
+                                    os.path.join(params.output_dir, '{}_{}_basic_depth'.format(index, i)))
                     util.depth2mesh(regressed_depth_[i], mask_batch[i],
-                                    os.path.join('/home/sicong/Downloads/out2/', '{}_{}_regress_depth'.format(index, i)))
+                                    os.path.join(params.output_dir, '{}_{}_regress_depth'.format(index, i)))
                     util.depth2mesh(depth_batch[i], mask_batch[i],
-                                    os.path.join('/home/sicong/Downloads/out2/', '{}_{}_gt_depth'.format(index, i)))
+                                    os.path.join(params.output_dir, '{}_{}_gt_depth'.format(index, i)))
 
-                static_out_basic = util.new_compute_depth_err_auc(index, basic_depth_, depth_batch, mask_batch,
-                                                                   mask_batch, mask_batch, 'heatmap', 40)
-                static_out_detail = util.new_compute_depth_err_auc(index, refined_depth_, depth_batch, mask_batch,
-                                                                   mask_batch,mask_batch, 'heatmap',40)
-                static_out_regress = util.new_compute_depth_err_auc(index, regressed_depth_, depth_batch, mask_batch,
-                                                                   mask_batch,mask_batch, 'heatmap',40)
+                # static_out_basic = util.new_compute_depth_err_auc(index, basic_depth_, depth_batch, mask_batch,
+                #                                                    mask_batch, mask_batch, 'heatmap', 40)
+                # static_out_detail = util.new_compute_depth_err_auc(index, refined_depth_, depth_batch, mask_batch,
+                #                                                    mask_batch,mask_batch, 'heatmap',40)
+                # static_out_regress = util.new_compute_depth_err_auc(index, regressed_depth_, depth_batch, mask_batch,
+                #                                                    mask_batch,mask_batch, 'heatmap',40)
 
                 index += 1
-                basic_depth_err += static_out_basic['err']
-                hist_basic += static_out_basic['histmap']
-
-                detail_depth_err += static_out_detail['err']
-                hist_detail += static_out_detail['histmap']
-
-                regressed_depth_err += static_out_regress['err']
-                hist_regressd += static_out_regress['histmap']
-
-
-            detail_depth_err /= num_data
-            basic_depth_err /= num_data
-            regressed_depth_err /= num_data
-
-            hist_detail = hist_detail / np.sum(hist_detail)
-
-            statics_npy['hist_detail'] = hist_detail
+                # basic_depth_err += static_out_basic['err']
+                # hist_basic += static_out_basic['histmap']
+                #
+                # detail_depth_err += static_out_detail['err']
+                # hist_detail += static_out_detail['histmap']
+                #
+                # regressed_depth_err += static_out_regress['err']
+                # hist_regressd += static_out_regress['histmap']
 
 
-            hist_basic = hist_basic / np.sum(hist_basic)
-
-            statics_npy['hist_basic'] = hist_basic
-
-
-            hist_regressd = hist_regressd / np.sum(hist_regressd)
-
-            statics_npy['hist_regressed'] = hist_regressd
-            statics_npy['basic_depth_err'] = basic_depth_err
-            statics_npy['detail_depth_err'] = detail_depth_err
-            statics_npy['regressed_depth_err'] = regressed_depth_err
-            sio.savemat('/home/sicong/Downloads/out1/result.mat', statics_npy)
+            # detail_depth_err /= num_data
+            # basic_depth_err /= num_data
+            # regressed_depth_err /= num_data
+            #
+            # hist_detail = hist_detail / np.sum(hist_detail)
+            #
+            # statics_npy['hist_detail'] = hist_detail
+            #
+            #
+            # hist_basic = hist_basic / np.sum(hist_basic)
+            #
+            # statics_npy['hist_basic'] = hist_basic
+            #
+            #
+            # hist_regressd = hist_regressd / np.sum(hist_regressd)
+            #
+            # statics_npy['hist_regressed'] = hist_regressd
+            # statics_npy['basic_depth_err'] = basic_depth_err
+            # statics_npy['detail_depth_err'] = detail_depth_err
+            # statics_npy['regressed_depth_err'] = regressed_depth_err
+            # sio.savemat('/home/sicong/Downloads/out1/result.mat', statics_npy)
