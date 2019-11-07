@@ -5,6 +5,7 @@ Requirements<br/>
 CUDA 9.0<br/>
 OpenCV 3.2<br/>
 Python 3.5<br/>
+tensorflow >= 1.6.0<br/>
 numpy<br/>
 
 
