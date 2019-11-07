@@ -19,6 +19,9 @@ run python demo.py <br/>
 model and test dir can be set in file params/params_iccv.py<br/>
 results will be saved in output/<br/>
 
+Training data can be download here:<br/>
+https://drive.google.com/file/d/1fWxF6dpdzJH_Hknmr3RKTIyiHegwiirF/view?usp=sharing<br/>
+
 References:<br/>
 @InProceedings{Tang_2019_ICCV,
 author = {Tang, Sicong and Tan, Feitong and Cheng, Kelvin and Li, Zhaoyang and Zhu, Siyu and Tan, Ping},
