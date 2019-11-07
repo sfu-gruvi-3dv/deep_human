@@ -12,6 +12,9 @@ Preparation<br/>
 Download model from https://drive.google.com/file/d/1xE_-KUPBI4S2FUbLyOQeqj1L4uS-hAg4/view?usp=sharing<br/>
 extract the files into folder models.<br/>
 
+mkdir models<br/>
+tar -xf models.tar -C models<br/>
+
 Test:<br/>
 run python demo.py <br/>
 model and test dir can be set in file params/params_iccv.py<br/>
