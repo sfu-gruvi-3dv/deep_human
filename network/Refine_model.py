@@ -9,18 +9,18 @@ import tensorflow as tf
 
 
 def kaiming(shape, dtype, partition_info=None):
-  """Kaiming initialization as described in https://arxiv.org/pdf/1502.01852.pdf
+    """Kaiming initialization as described in https://arxiv.org/pdf/1502.01852.pdf
 
-  Args
-    shape: dimensions of the tf array to initialize
-    dtype: data type of the array
-    partition_info: (Optional) info about how the variable is partitioned.
-      See https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/ops/init_ops.py#L26
-      Needed to be used as an initializer.
-  Returns
-    Tensorflow array with initial weights
-  """
-  return(tf.truncated_normal(shape, dtype=dtype)*tf.sqrt(2/float(shape[0])))
+    Args
+      shape: dimensions of the tf array to initialize
+      dtype: data type of the array
+      partition_info: (Optional) info about how the variable is partitioned.
+        See https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/ops/init_ops.py#L26
+        Needed to be used as an initializer.
+    Returns
+      Tensorflow array with initial weights
+    """
+    return (tf.truncated_normal(shape, dtype=dtype) * tf.sqrt(2 / float(shape[0])))
 
 
 class Cascade_Model():
@@ -48,6 +48,7 @@ class Cascade_Model():
             joints_feature_conv = self.conv2d(pose_3d_input['feature'][1], self.nFeat, 1, 1, name='joints_feature_conv')
             joints_output_conv = self.conv2d(pose_3d_input['out'][1], self.nFeat, 1, 1, name='joints_ouput_conv')
 
+
             refined_seg_input = tf.add_n([seg_feature_conv,seg_output_conv,joints_output_conv,joints_feature_conv])
 
             # refined_joints_input = tf.add_n([seg_feature_conv,seg_output_conv,joints_output_conv,joints_feature_conv],
@@ -61,39 +62,41 @@ class Cascade_Model():
             refined_out['joints_refined'] = joints_refined
         return refined_out
 
-    def conv2d(self, inputs, filters, kernel_size = 1, strides = 1, pad = 'SAME', name = 'conv2d'):
+    def conv2d(self, inputs, filters, kernel_size=1, strides=1, pad='SAME', name='conv2d'):
         """
         Typical conv2d layer
         Notice that BN has its own bias term and conv layer before bn does not need bias term.
         However, the bias here will not matter in that case
         """
         with tf.variable_scope(name):
-            #W = tf.Variable(tf.contrib.layers.xavier_initializer(uniform=False)([kernel_size,kernel_size, inputs.get_shape().as_list()[3], filters]), name= 'weights')
-            W = tf.get_variable("W", shape=[kernel_size,kernel_size, inputs.get_shape().as_list()[3], filters], initializer=tf.contrib.layers.xavier_initializer(uniform=False))
+            # W = tf.Variable(tf.contrib.layers.xavier_initializer(uniform=False)([kernel_size,kernel_size, inputs.get_shape().as_list()[3], filters]), name= 'weights')
+            W = tf.get_variable("W", shape=[kernel_size, kernel_size, inputs.get_shape().as_list()[3], filters],
+                                initializer=tf.contrib.layers.xavier_initializer(uniform=False))
             b = tf.get_variable("b", shape=filters, initializer=tf.constant_initializer(0.1))
-            conv = tf.nn.conv2d(inputs, W, [1,strides,strides,1], padding=pad, data_format='NHWC')
+            conv = tf.nn.conv2d(inputs, W, [1, strides, strides, 1], padding=pad, data_format='NHWC')
             return tf.add(conv, b, 'conv2d_out')
 
     def bn_relu(self, inputs, scope='bn_relu'):
         """
         bn -> relu
         """
-        #notice during testing, we need to also set is_training=True because of the huge variance among
-#        bn = tf.layers.batch_normalization(inputs, momentum=0.9, epsilon=1e-5, training=self.train, name = scope)
-#        norm = tf.nn.relu(bn)
-        norm = tf.contrib.layers.batch_norm(inputs, 0.9, epsilon=1e-5, is_training=self.train, activation_fn = tf.nn.relu, scale=True, scope=scope)
+        # notice during testing, we need to also set is_training=True because of the huge variance among
+        #        bn = tf.layers.batch_normalization(inputs, momentum=0.9, epsilon=1e-5, training=self.train, name = scope)
+        #        norm = tf.nn.relu(bn)
+        norm = tf.contrib.layers.batch_norm(inputs, 0.9, epsilon=1e-5, is_training=self.train, activation_fn=tf.nn.relu,
+                                            scale=True, scope=scope)
         return norm
 
-    def lin(self, inputs, filters, kernel_size = 1, strides = 1, pad = 'SAME', name = 'lin'):
+    def lin(self, inputs, filters, kernel_size=1, strides=1, pad='SAME', name='lin'):
         """
            conv -> bn -> relu
         """
         with tf.variable_scope(name):
-            #W = tf.Variable(tf.contrib.layers.xavier_initializer(uniform=False)([kernel_size,kernel_size, inputs.get_shape().as_list()[3], filters]), name= 'weights')
-            W = tf.get_variable("W", shape=[kernel_size,kernel_size, inputs.get_shape().as_list()[3], filters], initializer=tf.contrib.layers.xavier_initializer(uniform=False))
-            conv = tf.nn.conv2d(inputs, W, [1,strides,strides,1], padding=pad, data_format='NHWC')
+            # W = tf.Variable(tf.contrib.layers.xavier_initializer(uniform=False)([kernel_size,kernel_size, inputs.get_shape().as_list()[3], filters]), name= 'weights')
+            W = tf.get_variable("W", shape=[kernel_size, kernel_size, inputs.get_shape().as_list()[3], filters],
+                                initializer=tf.contrib.layers.xavier_initializer(uniform=False))
+            conv = tf.nn.conv2d(inputs, W, [1, strides, strides, 1], padding=pad, data_format='NHWC')
             return self.bn_relu(conv, scope='bn_relu')
-
 
 
 
@@ -124,15 +127,15 @@ class Cam_Model():
         self.HUMAN_3D_SIZE = 16 * 3
         self.input_size = self.HUMAN_3D_SIZE
         self.num_layers = 3
-        self.isTraining = tf.placeholder(tf.bool,name="isTrainingflag")
+        self.isTraining = tf.placeholder(tf.bool, name="isTrainingflag")
         self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
 
-        self.linear_size   = linear_size
-        self.batch_size    = batch_size
-        self.learning_rate = tf.Variable( float(learning_rate), trainable=False, dtype=dtype, name="learning_rate")
-        self.global_step   = tf.Variable(0, trainable=False, name="global_step")
+        self.linear_size = linear_size
+        self.batch_size = batch_size
+        self.learning_rate = tf.Variable(float(learning_rate), trainable=False, dtype=dtype, name="learning_rate")
+        self.global_step = tf.Variable(0, trainable=False, name="global_step")
         decay_steps = 100000  # empirical
-        decay_rate = 0.96     # empirical
+        decay_rate = 0.96  # empirical
         self.learning_rate = tf.train.exponential_decay(self.learning_rate, self.global_step, decay_steps, decay_rate)
         self.dtype = dtype
 

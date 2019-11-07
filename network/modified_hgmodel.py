@@ -21,36 +21,6 @@ class ModifiedHgModel():
         self.outDim = outDim
         self.train = training
 
-    # def generate(self, inputs):
-    #     with tf.variable_scope(self.name):
-    #         with tf.variable_scope('preprocessing'):
-    #             cnv1 = self.lin(inputs, 128, 7, 2, 'SAME', name='256to128')
-    #             # pool = tf.contrib.layers.max_pool2d(r1, [2,2], [2,2], padding= 'VALID')
-    #             #  pool = self.down_conv2d(r1, 128, [2,2], [2,2], pad= 'VALID', name = 'pool')
-    #             #  r4 = self.residual(pool, 128, name='r4')
-    #             r5 = self.residual(cnv1, self.nFeat, name='r5')
-    #             output_feature = self.tpnet(r5, self.nFeat)
-    #
-    #             output_feature_256 = self.up_con2d(output_feature, self.nFeat, kernel_size=2, strides=2, pad='SAME', name='output_feature_256')
-    #             output_feature_256_1 = self.residual(output_feature_256, self.nFeat, name='output_feature_256_1')
-    #             basic_feature_256 = self.lin(output_feature_256_1, self.nFeat, name='basic_feature_256')
-    #             residual_feature_256 = self.lin(output_feature_256_1, self.nFeat, name='residual_feature_256')
-    #
-    #             outdic = {}
-    #             outdic['depth_feature'] = output_feature_256_1
-    #
-    #             with tf.variable_scope('basic_depth'):
-    #                 # basic_feature_256 = self.residual(output_feature_256_1, self.nFeat, name='basic_feature_256')
-    #                 outdic['depth_basic'] = self.conv2d(basic_feature_256, self.outDim, 1, 1, 'SAME', 'depth_basic')
-    #                 # outdic['depth_basic'] = self.conv2d(basic_feature_256, 1, 1, 1, 'SAME', 'depth_basic__')
-    #
-    #             with tf.variable_scope('depth_offset'):
-    #                 # residual_feature_256 = self.residual(output_feature_256_1, self.nFeat, name='residual_feature_256')
-    #                 outdic['depth_residual'] = self.conv2d(residual_feature_256, 1, 1, 1, 'SAME', 'depth_residual')
-    #
-    #     return
-
-
     def generate(self, inputs):
         with tf.variable_scope(self.name):
             with tf.variable_scope('preprocessing'):
@@ -63,18 +33,23 @@ class ModifiedHgModel():
 
                 output_feature_256 = self.up_con2d(output_feature, self.nFeat, kernel_size=2, strides=2, pad='SAME', name='output_feature_256')
                 output_feature_256_1 = self.residual(output_feature_256, self.nFeat, name='output_feature_256_1')
+                basic_feature_256 = self.residual(output_feature_256_1, self.nFeat, name='basic_feature_256')
+                residual_feature_256 = self.residual(output_feature_256_1, self.nFeat, name='residual_feature_256')
 
                 outdic = {}
                 outdic['depth_feature'] = output_feature_256_1
 
                 with tf.variable_scope('basic_depth'):
-                    basic_feature_256 = self.lin(output_feature_256_1, self.nFeat, name='basic_feature_256')
+                    # basic_feature_256 = self.residual(output_feature_256_1, self.nFeat, name='basic_feature_256')
                     outdic['depth_basic'] = self.conv2d(basic_feature_256, self.outDim, 1, 1, 'SAME', 'depth_basic')
+                    # outdic['depth_basic'] = self.conv2d(basic_feature_256, 1, 1, 1, 'SAME', 'depth_basic__')
+
                 with tf.variable_scope('depth_offset'):
-                    residual_feature_256 = self.lin(output_feature_256_1, self.nFeat, name='residual_feature_256')
+                    # residual_feature_256 = self.residual(output_feature_256_1, self.nFeat, name='residual_feature_256')
                     outdic['depth_residual'] = self.conv2d(residual_feature_256, 1, 1, 1, 'SAME', 'depth_residual')
 
         return outdic
+
 
 
     def down_conv2d(self, inputs, filters, kernel_size=[2, 2], strides=[2, 2], pad='VALID', name='down_conv2d'):
@@ -220,4 +195,3 @@ class ModifiedHgModel():
 
 
         return detail_ouput
-
