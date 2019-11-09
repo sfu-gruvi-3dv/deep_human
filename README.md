@@ -19,7 +19,7 @@ run python demo.py <br/>
 model and test dir can be set in file params/params_iccv.py<br/>
 results will be saved in output/<br/>
 
-The input image should be 256x256 sized and tightly cropped image, and the network predict the depth for all pixels, the computed depth image needs to be cropped by silhouette, you can use some off-the-shelf tools(e.g. MaskRCNN) to get the foreground region, or use the segmentation result returned by segmentation-net.<br/>
+The input image should be 256x256 sized and tightly cropped image, and the network predict the depth for all pixels, the computed depth image needs to be cropped by silhouette, you can use some off-the-shelf tools(e.g. MaskRCNN) to get the foreground region, or use the segmentation result obtained from segmentation-net.<br/>
 
 Training data can be downloaded here:<br/>
 https://drive.google.com/file/d/1fWxF6dpdzJH_Hknmr3RKTIyiHegwiirF/view?usp=sharing<br/>
