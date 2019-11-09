@@ -14,10 +14,12 @@ Download model from https://drive.google.com/file/d/1xE_-KUPBI4S2FUbLyOQeqj1L4uS
 mkdir models<br/>
 tar -xf models.tar -C models<br/>
 
-Test:<br/>
+Demo:<br/>
 run python demo.py <br/>
 model and test dir can be set in file params/params_iccv.py<br/>
 results will be saved in output/<br/>
+
+Acutally the network predict the depth for all pixels, and the computed depth image needs to be cropped by silhouette, you can use some off-the-shelf tools(e.g. MaskRCNN) to get the foreground region, or use the segmentation result returned by segmentation-net/<br/>
 
 Training data can be downloaded here:<br/>
 https://drive.google.com/file/d/1fWxF6dpdzJH_Hknmr3RKTIyiHegwiirF/view?usp=sharing<br/>
