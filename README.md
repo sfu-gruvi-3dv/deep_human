@@ -22,7 +22,7 @@ results will be saved in output/<br/>
 The input image should be 256x256 sized and tightly cropped image, and the network predict the depth for all pixels, the computed depth image needs to be cropped by silhouette, you can use some off-the-shelf tools(e.g. MaskRCNN) to get the foreground region, or use the segmentation result obtained from segmentation-net.<br/>
 
 Training data can be downloaded here:<br/>
-https://drive.google.com/file/d/1pO9rFMlps_QkCVm8cJpfN0fZdphxTChM/view?usp=sharing<br/>
+https://drive.google.com/file/d/18tXcv68ke3ln0ITE-DbjnvIBiQV1QYbb/view?usp=sharing<br/>
 
 References:<br/>
 @InProceedings{Tang_2019_ICCV,
