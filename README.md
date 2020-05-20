@@ -10,7 +10,7 @@ numpy<br/>
 
 
 Preparation<br/>
-Download model from https://drive.google.com/file/d/1xE_-KUPBI4S2FUbLyOQeqj1L4uS-hAg4/view?usp=sharing<br/>
+Download model from https://drive.google.com/open?id=16CWE_1tx3IfWDucfkTmOnRPylvv2ekRM<br/>
 mkdir models<br/>
 tar -xf models.tar -C models<br/>
 
